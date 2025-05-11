@@ -1,3 +1,4 @@
+const { getAdminById } = require("../controllers/admin.controller.js");
 const {
   create,
   getAll,
@@ -5,7 +6,9 @@ const {
   remove,
   update,
   login,
+  getUsers,
 } = require("../controllers/user.controller.js");
+const userJwtGuard = require("../middlewares/guards/user-jwt.guard.js");
 
 const router = require("express").Router();
 
@@ -15,5 +18,7 @@ router.post("/login", login);
 router.get("/:id", getOne);
 router.delete("/:id", remove);
 router.patch("/:id", update);
+router.get("/", userJwtGuard, getUsers);
+router.get("/:id", userJwtGuard, getAdminById);
 
 module.exports = router;

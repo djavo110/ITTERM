@@ -32,7 +32,17 @@ const login = async (req, res) => {
       return res.status(401).send({ message: "Email yoki password noto'g'ri" });
     }
 
-    res.status(201).send({ message: "Tizimga xush kelibsiz", id: user.id });
+    const payload = {
+      id: admin._id,
+      email: admin.email,
+      is_active: admin.is_active,
+    };
+
+    const token = jwt.sign(payload, config.get("tokenKeyt"), {
+      expiresIn: config.get("tokenExpTime"),
+    });
+
+    res.status(201).send({ message: "Tizimga xush kelibsiz", id: user.id, token });
   } catch (error) {
     return sendErrorResponse(error, res);
   }
@@ -88,6 +98,25 @@ const update = async (req, res) => {
   }
 };
 
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.send({ users });
+  } catch (error) {
+    sendErrorResponse(error, res);
+  }
+};
+
+const getUserById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const user = await User.findById(id);
+    res.send({ user });
+  } catch (error) {
+    sendErrorResponse(error, res);
+  }
+};
+
 module.exports = {
   create,
   getAll,
@@ -95,4 +124,6 @@ module.exports = {
   remove,
   update,
   login,
+  getUsers,
+  getUserById
 };

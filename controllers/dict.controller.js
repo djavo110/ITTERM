@@ -10,7 +10,7 @@ const addDict = async (req, res) => {
     if(error) {
       sendErrorResponce(error, res);
     }
-    const { term } = req.body;
+    const { term } = value;
     const newDict = await Dict.create({ term, letter: term[0] });
     res.status(201).send({ message: "New Term added", newDict });
   } catch (error) {

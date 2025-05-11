@@ -1,4 +1,4 @@
-const { sendErrorResponse } = require("../helpers/send_error_response");
+const {sendErrorResponse} = require("../helpers/send_error_response");
 const bcrypt = require("bcrypt");
 const Admin = require("../schemas/Admin");
 
@@ -32,7 +32,20 @@ const login = async (req, res) => {
       return res.status(401).send({ message: "Email yoki password noto'g'ri" });
     }
 
-    res.status(201).send({ message: "Tizimga xush kelibsiz", id: admin.id });
+    const payload = {
+      id: admin._id,
+      email: admin.email,
+      is_active: admin.is_active,
+      is_creator: admin.is_creator,
+    };
+
+    const token = jwt.sign(payload, config.get("tokenKeyt"), {
+      expiresIn: config.get("tokenExpTime"),
+    });
+
+    res
+      .status(201)
+      .send({ message: "Tizimga xush kelibsiz", id: admin.id, token });
   } catch (error) {
     return sendErrorResponse(error, res);
   }
@@ -88,6 +101,25 @@ const update = async (req, res) => {
   }
 };
 
+const getAdmins = async (req, res) => {
+  try {
+    const admins = await Admin.find();
+    res.send({ admins });
+  } catch (error) {
+    sendErrorResponse(error, res);
+  }
+};
+
+const getAdminById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const admin = await Admin.findById(id);
+    res.send({ admin });
+  } catch (error) {
+    sendErrorResponse(error, res);
+  }
+};
+
 module.exports = {
   create,
   getAll,
@@ -95,4 +127,6 @@ module.exports = {
   remove,
   update,
   login,
+  getAdmins,
+  getAdminById,
 };
