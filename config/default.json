@@ -4,6 +4,23 @@
   "tokenKey": "MySecretTokenKeyAuthor",
   "adminTokenKey": "MySecretTokenKeyAdmin",
   "userTokenKey": "MySecretTokenKeyUser",
+  "tokenExpTime": "24h",
 
-  "tokenExpTime": "24h"
+  "access_key": "AccessTokenSecretKey",
+  "refresh_key": "RefreshTokenSecretKey",
+  "access_time": "15h",
+  "refresh_time": "15d",
+  "cookie_refresh_time": 12960000,
+
+  "adminaccess_key": "AccessTokenSecretKey",
+  "adminrefresh_key": "RefreshTokenSecretKey",
+  "adminaccess_time": "11h",
+  "adminrefresh_time": "11d",
+  "admincookie_refresh_time": 1215000,
+
+  "useraccess_key": "AccessTokenSecretKey",
+  "userrefresh_key": "RefreshTokenSecretKey",
+  "useraccess_time": "6h",
+  "userrefresh_time": "6d",
+  "usercookie_refresh_time": 238000
 }

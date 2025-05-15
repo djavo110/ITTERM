@@ -1,6 +1,8 @@
-const { sendErrorResponse } = require("../helpers/send_error_response");
+const { sendErrorResponce } = require("../helpers/send_error_response");
+const User = require("../schemas/user");
 const bcrypt = require("bcrypt");
-const User = require("../schemas/User");
+const config = require("config");
+const jwtService = require("../services/jwt.service");
 
 const create = async (req, res) => {
   try {
@@ -14,7 +16,7 @@ const create = async (req, res) => {
     });
     res.status(201).send({ message: "New User added", newUser });
   } catch (error) {
-    return sendErrorResponse(error, res);
+    return sendErrorResponce(error, res);
   }
 };
 
@@ -38,29 +40,48 @@ const login = async (req, res) => {
       is_active: admin.is_active,
     };
 
-    const token = jwt.sign(payload, config.get("tokenKeyt"), {
-      expiresIn: config.get("tokenExpTime"),
-    });
+    // const token = jwt.sign(payload, config.get("tokenKeyt"), {
+    //   expiresIn: config.get("tokenExpTime"),
+    // });
 
-    res.status(201).send({ message: "Tizimga xush kelibsiz", id: user.id, token });
+    const tokens = jwtService.generateTokens(payload);
+    user.refresh_token = tokens.refreshToken;
+    await user.save();
+
+    res.cookie("refreshToken", tokens.refreshToken),
+      {
+        httpOnly: true,
+        maxAge: config.get("cookie_refresh_time"),
+      };
+
+    res
+      .status(201)
+      .send({
+        message: "Tizimga xush kelibsiz",
+        id: user.id,
+        accessToken: tokens.accessToken,
+      });
   } catch (error) {
-    return sendErrorResponse(error, res);
+    return sendErrorResponce(error, res);
   }
 };
 
 const getAll = async (req, res) => {
-  let { limit, offset } = req.query;
+  // let { limit, offset } = req.query;
   try {
-    limit = limit ? limit : 10;
-    offset = offset ? offset : 1;
+    // limit = limit ? limit : 10;
+    // offset = offset ? offset : 1;
 
-    const data = await User.find({})
-      .limit(limit)
-      .skip((offset - 1) * limit);
+    // const data = await User.find({})
+    //   .limit(limit)
+    //   .skip((offset - 1) * limit);
 
-    res.status(200).send({ data });
+    const users = await User.find();
+    res.send({ users });
+
+    // res.status(200).send({ data });
   } catch (error) {
-    sendErrorResponse(error, res);
+    sendErrorResponce(error, res);
   }
 };
 
@@ -71,7 +92,7 @@ const getOne = async (req, res) => {
 
     res.status(200).send({ user });
   } catch (error) {
-    sendErrorResponse(error, res);
+    sendErrorResponce(error, res);
   }
 };
 
@@ -82,7 +103,7 @@ const remove = async (req, res) => {
 
     res.status(200).send({ message: "User deleted", deletedItem });
   } catch (error) {
-    sendErrorResponse(error, res);
+    sendErrorResponce(error, res);
   }
 };
 
@@ -94,7 +115,7 @@ const update = async (req, res) => {
 
     res.status(200).send({ message: "User updated", updatedItem });
   } catch (error) {
-    sendErrorResponse(error, res);
+    sendErrorResponce(error, res);
   }
 };
 
@@ -103,7 +124,7 @@ const getUsers = async (req, res) => {
     const users = await User.find();
     res.send({ users });
   } catch (error) {
-    sendErrorResponse(error, res);
+    sendErrorResponce(error, res);
   }
 };
 
@@ -113,7 +134,36 @@ const getUserById = async (req, res) => {
     const user = await User.findById(id);
     res.send({ user });
   } catch (error) {
-    sendErrorResponse(error, res);
+    sendErrorResponce(error, res);
+  }
+};
+
+const logoutUser = async (req, res) => {
+  try {
+    console.log(req.cookies);
+    console.log(req.headers.cookie);
+
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+      return res
+        .status(400)
+        .send({ message: "Cookieda refresh token topilmadi" });
+    }
+    const user = await User.findOneAndUpdate(
+      { refresh_token: refreshToken },
+      {
+        refresh_token: "",
+      },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(400).send({ message: "Token noto'g'ri" });
+    }
+    res.clearCookie("refreshToken");
+    res.send({ user });
+  } catch (error) {
+    sendErrorResponce(error, res);
   }
 };
 
@@ -125,5 +175,6 @@ module.exports = {
   update,
   login,
   getUsers,
-  getUserById
+  getUserById,
+  logoutUser
 };

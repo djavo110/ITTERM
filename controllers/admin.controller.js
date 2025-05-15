@@ -1,6 +1,8 @@
-const {sendErrorResponse} = require("../helpers/send_error_response");
-const bcrypt = require("bcrypt");
+const { sendErrorResponce } = require("../helpers/send_error_response");
 const Admin = require("../schemas/Admin");
+const jwtService = require("../services/jwt.service");
+const bcrypt = require("bcrypt");
+const config = require("config");
 
 const create = async (req, res) => {
   try {
@@ -14,7 +16,7 @@ const create = async (req, res) => {
     });
     res.status(201).send({ message: "New Admin added", newAdmin });
   } catch (error) {
-    return sendErrorResponse(error, res);
+    return sendErrorResponce(error, res);
   }
 };
 
@@ -39,15 +41,28 @@ const login = async (req, res) => {
       is_creator: admin.is_creator,
     };
 
-    const token = jwt.sign(payload, config.get("tokenKeyt"), {
-      expiresIn: config.get("tokenExpTime"),
+    // const token = jwt.sign(payload, config.get("tokenKeyt"), {
+    //   expiresIn: config.get("tokenExpTime"),
+    // });
+
+    const tokens = jwtService.generateTokens(payload);
+    admin.refresh_token = tokens.refreshToken;
+    await admin.save();
+
+    res.cookie("refreshToken", jwtService.generateTokens(payload), {
+      httpOnly: true,
+      maxAge: config.get("cookie_refresh_time"),
     });
 
     res
       .status(201)
-      .send({ message: "Tizimga xush kelibsiz", id: admin.id, token });
+      .send({
+        message: "Tizimga xush kelibsiz",
+        id: admin.id,
+        accessToken: tokens.accessToken,
+      });
   } catch (error) {
-    return sendErrorResponse(error, res);
+    return sendErrorResponce(error, res);
   }
 };
 
@@ -74,7 +89,7 @@ const getOne = async (req, res) => {
 
     res.status(200).send({ admin });
   } catch (error) {
-    sendErrorResponse(error, res);
+    sendErrorResponce(error, res);
   }
 };
 
@@ -120,6 +135,35 @@ const getAdminById = async (req, res) => {
   }
 };
 
+const logoutAdmin = async (req, res) => {
+  try {
+    console.log(req.cookies);
+    console.log(req.headers.cookie);
+
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+      return res
+        .status(400)
+        .send({ message: "Cookieda refresh token topilmadi" });
+    }
+    const admin = await Admin.findOneAndUpdate(
+      { refresh_token: refreshToken },
+      {
+        refresh_token: "",
+      },
+      { new: true }
+    );
+    if (!admin) {
+      return res.status(400).send({ message: "Token noto'g'ri" });
+    }
+    res.clearCookie("refreshToken");
+    res.send({ admin });
+  } catch (error) {
+    sendErrorResponce(error, res);
+  }
+};
+
 module.exports = {
   create,
   getAll,
@@ -129,4 +173,5 @@ module.exports = {
   login,
   getAdmins,
   getAdminById,
+  logoutAdmin,
 };

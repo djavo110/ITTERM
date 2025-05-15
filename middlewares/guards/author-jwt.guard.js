@@ -1,11 +1,11 @@
 const { sendErrorResponce } = require("../../helpers/send_error_response");
 const jwt = require("jsonwebtoken");
 const config = require("config");
+const jwtService = require("../../services/jwt.service");
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   try {
     const authorization = req.headers.authorization;
-    console.log(authorization);
 
     if (!authorization) {
       return res
@@ -16,13 +16,14 @@ module.exports = (req, res, next) => {
     const bearer = authorization.split(" ")[0];
     const token = authorization.split(" ")[1];
 
+
     if (bearer !== "Bearer" || !token) {
       return res.status(401).send({ message: "Bearer token berilmagan" });
     }
-    const decodedPayload = jwt.verify(token, config.get("tokenKey"));
-    // if(!decodedPayload.is_active){
+    // const decodedPayload = jwt.verify(token, config.get("tokenKey"));
 
-    // }
+    const decodedPayload = await jwtService.verifyAccessToken(token);
+
     req.author = decodedPayload;
 
     console.log(req); 
